@@ -3,7 +3,7 @@ Task data models for the task management system.
 """
 from datetime import datetime
 from enum import Enum
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, field, asdict
 from typing import Optional
 import json
 
@@ -21,27 +21,33 @@ class Priority(Enum):
 
 
 PRIORITY_COLORS = {
-    Priority.HIGH: "#ff4444",
-    Priority.MEDIUM: "#ffaa00",
-    Priority.LOW: "#44aa44"
+    Priority.HIGH: "#e74c3c",
+    Priority.MEDIUM: "#f39c12",
+    Priority.LOW: "#27ae60",
 }
 
 STATUS_COLORS = {
-    TaskStatus.PENDING: "#fff3cd",
-    TaskStatus.PROCESSING: "#cce5ff",
-    TaskStatus.DONE: "#d4edda"
+    TaskStatus.PENDING: "#f5f0e8",
+    TaskStatus.PROCESSING: "#e8eef5",
+    TaskStatus.DONE: "#eaf5ea",
 }
 
 
 @dataclass
 class Task:
+    id: str
     name: str
     created_at: str
+    description: str = ""
+    deadline: Optional[str] = None
     started_at: Optional[str] = None
+    updated_at: Optional[str] = None
     completed_at: Optional[str] = None
     priority: str = "medium"
     status: str = "pending"
     color: Optional[str] = None
+    assigned_by: Optional[dict] = None
+    assigned_to: Optional[dict] = None
 
     def __post_init__(self):
         if self.color is None:
@@ -52,27 +58,4 @@ class Task:
 
     @classmethod
     def from_dict(cls, data: dict) -> "Task":
-        return cls(**data)
-
-    def to_json(self) -> str:
-        return json.dumps(self.to_dict(), ensure_ascii=False)
-
-    @classmethod
-    def from_json(cls, json_str: str) -> "Task":
-        return cls.from_dict(json.loads(json_str))
-
-    def start(self):
-        """Mark task as started"""
-        self.status = TaskStatus.PROCESSING.value
-        self.started_at = datetime.now().isoformat()
-
-    def complete(self):
-        """Mark task as completed"""
-        self.status = TaskStatus.DONE.value
-        self.completed_at = datetime.now().isoformat()
-
-    def reset(self):
-        """Reset task to pending"""
-        self.status = TaskStatus.PENDING.value
-        self.started_at = None
-        self.completed_at = None
+        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
