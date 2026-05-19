@@ -5,6 +5,7 @@ import json as json_lib
 import os
 import random
 import string
+import subprocess
 from datetime import datetime
 from urllib.request import Request, urlopen
 
@@ -155,6 +156,48 @@ def move_task(task_id):
             )
         except Exception as e:
             print(f"Status update failed for task {task.id}: {e}")
+    storage.save_task(task)
+    return jsonify(task.to_dict())
+
+
+@app.route("/api/tasks/<task_id>/execute", methods=["POST"])
+def execute_task(task_id):
+    task = storage.get_task(task_id)
+    if task is None:
+        return jsonify({"error": "Task not found"}), 404
+
+    if task.type != "script" or not task.shell_command:
+        return jsonify({"error": "Not a script task"}), 400
+
+    ident = get_or_create_identity()
+    if not task.assigned_to or task.assigned_to.get("instance_id") != ident["instance_id"]:
+        return jsonify({"error": "Not assigned to you"}), 403
+
+    if task.shell_result:
+        return jsonify({"error": "Already executed"}), 409
+
+    try:
+        result = subprocess.run(
+            task.shell_command, shell=True,
+            capture_output=True, text=True, timeout=30
+        )
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Command timed out after 30s"}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    task.shell_result = {
+        "exit_code": result.returncode,
+        "stdout": result.stdout[-5000:],
+        "stderr": result.stderr[-5000:],
+        "executed_at": _now(),
+    }
+
+    if result.returncode == 0:
+        task = storage.move_task(task_id, "done")
+        task.completed_at = _now()
+
+    task.updated_at = _now()
     storage.save_task(task)
     return jsonify(task.to_dict())
 
