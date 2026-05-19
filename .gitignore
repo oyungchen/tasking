@@ -1,3 +1,5 @@
 tasks/*
 openspec/*
 .claude/*
+.venv/*
+taskmanager.pid

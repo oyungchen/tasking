@@ -1,0 +1,106 @@
+<h2>页面重构：日期 x 状态矩阵视图</h2>
+<p class="subtitle">当前：3列Kanban。目标：添加日期纵轴，形成表格矩阵</p>
+
+<h3>两种布局方案</h3>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>完整表格</h3>
+      <p>行=日期，列=状态。每个单元格内放置该日期+该状态的任务卡片。日期范围外的任务不显示。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>日期分组列</h3>
+      <p>保持3列不变，每列内部按日期分组（相同日期的任务归在一起，加日期标签）。类似移动端布局。</p>
+    </div>
+  </div>
+</div>
+
+<div style="display: flex; gap: 24px; margin-top: 24px;">
+
+<div style="flex: 1; min-width: 0;">
+<h3>方案 A：完整表格</h3>
+<div class="mockup">
+  <div class="mockup-body">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:center;">
+      <thead>
+        <tr>
+          <th style="padding:8px;border:1px solid #ddd;background:#f5f5f5;width:100px;">日期</th>
+          <th style="padding:8px;border:1px solid #ddd;background:#fff8e1;">Pending</th>
+          <th style="padding:8px;border:1px solid #ddd;background:#e3f2fd;">Processing</th>
+          <th style="padding:8px;border:1px solid #ddd;background:#e8f5e9;">Done</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;background:#fafafa;font-weight:500;">05-15</td>
+          <td style="padding:6px;border:1px solid #ddd;vertical-align:top;">
+            <div style="background:#fff;border-left:4px solid #fd7e14;padding:4px 8px;margin:2px 0;border-radius:4px;text-align:left;font-size:12px;">设计首页</div>
+            <div style="background:#fff;border-left:4px solid #28a745;padding:4px 8px;margin:2px 0;border-radius:4px;text-align:left;font-size:12px;">写文档</div>
+          </td>
+          <td style="padding:6px;border:1px solid #ddd;vertical-align:top;">
+            <div style="background:#fff;border-left:4px solid #dc3545;padding:4px 8px;margin:2px 0;border-radius:4px;text-align:left;font-size:12px;">后端API</div>
+          </td>
+          <td style="padding:6px;border:1px solid #ddd;vertical-align:top;">
+            <div style="background:#fff;border-left:4px solid #28a745;padding:4px 8px;margin:2px 0;border-radius:4px;text-align:left;font-size:12px;">修bug</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;background:#fafafa;font-weight:500;">05-16</td>
+          <td style="padding:6px;border:1px solid #ddd;vertical-align:top;">
+            <div style="background:#fff;border-left:4px solid #dc3545;padding:4px 8px;margin:2px 0;border-radius:4px;text-align:left;font-size:12px;">性能优化</div>
+          </td>
+          <td style="padding:6px;border:1px solid #ddd;vertical-align:top;"></td>
+          <td style="padding:6px;border:1px solid #ddd;vertical-align:top;">
+            <div style="background:#fff;border-left:4px solid #fd7e14;padding:4px 8px;margin:2px 0;border-radius:4px;text-align:left;font-size:12px;">代码审查</div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid #ddd;background:#fafafa;font-weight:500;">05-17</td>
+          <td style="padding:6px;border:1px solid #ddd;vertical-align:top;"></td>
+          <td style="padding:6px;border:1px solid #ddd;vertical-align:top;">
+            <div style="background:#fff;border-left:4px solid #fd7e14;padding:4px 8px;margin:2px 0;border-radius:4px;text-align:left;font-size:12px;">部署上线</div>
+          </td>
+          <td style="padding:6px;border:1px solid #ddd;vertical-align:top;"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<div style="flex: 1; min-width: 0;">
+<h3>方案 B：日期分组列</h3>
+<div class="mockup">
+  <div class="mockup-body">
+    <div style="display:flex;gap:12px;">
+      <div style="flex:1;background:#fff8e1;border-radius:8px;padding:10px;">
+        <div style="font-weight:700;margin-bottom:8px;color:#ff9800;">Pending</div>
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">05-15</div>
+        <div style="background:#fff;border-left:4px solid #fd7e14;padding:3px 6px;margin:2px 0;border-radius:3px;font-size:11px;">设计首页</div>
+        <div style="background:#fff;border-left:4px solid #28a745;padding:3px 6px;margin:2px 0;border-radius:3px;font-size:11px;">写文档</div>
+        <div style="font-size:11px;color:#999;margin:8px 0 4px;">05-16</div>
+        <div style="background:#fff;border-left:4px solid #dc3545;padding:3px 6px;margin:2px 0;border-radius:3px;font-size:11px;">性能优化</div>
+      </div>
+      <div style="flex:1;background:#e3f2fd;border-radius:8px;padding:10px;">
+        <div style="font-weight:700;margin-bottom:8px;color:#2196f3;">Processing</div>
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">05-15</div>
+        <div style="background:#fff;border-left:4px solid #dc3545;padding:3px 6px;margin:2px 0;border-radius:3px;font-size:11px;">后端API</div>
+      </div>
+      <div style="flex:1;background:#e8f5e9;border-radius:8px;padding:10px;">
+        <div style="font-weight:700;margin-bottom:8px;color:#4caf50;">Done</div>
+        <div style="font-size:11px;color:#999;margin-bottom:4px;">05-15</div>
+        <div style="background:#fff;border-left:4px solid #28a745;padding:3px 6px;margin:2px 0;border-radius:3px;font-size:11px;">修bug</div>
+        <div style="font-size:11px;color:#999;margin:8px 0 4px;">05-16</div>
+        <div style="background:#fff;border-left:4px solid #fd7e14;padding:3px 6px;margin:2px 0;border-radius:3px;font-size:11px;">代码审查</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
