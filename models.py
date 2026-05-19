@@ -45,12 +45,15 @@ class Task:
     completed_at: Optional[str] = None
     priority: str = "medium"
     status: str = "pending"
+    type: str = "normal"
+    shell_command: Optional[str] = None
+    shell_result: Optional[dict] = None
     color: Optional[str] = None
     assigned_by: Optional[dict] = None
     assigned_to: Optional[dict] = None
 
     def __post_init__(self):
-        if self.color is None:
+        if self.color is None and self.type == "normal":
             self.color = PRIORITY_COLORS.get(Priority(self.priority), "#888888")
 
     def to_dict(self) -> dict:
