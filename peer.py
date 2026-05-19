@@ -4,7 +4,7 @@ import socket
 import threading
 from urllib.request import Request, urlopen
 
-from zeroconf import ServiceBrowser, ServiceInfo, Zeroconf
+from zeroconf import ServiceBrowser, ServiceInfo, Zeroconf, NonUniqueNameException
 
 from identity import get_or_create_identity
 
@@ -62,7 +62,10 @@ class PeerRegistry:
                 b"version": str(PEER_API_VERSION).encode(),
             },
         )
-        self._zc.register_service(self._service_info, ttl=60)
+        try:
+            self._zc.register_service(self._service_info, ttl=60)
+        except NonUniqueNameException:
+            pass
         self._browser = ServiceBrowser(self._zc, SERVICE_TYPE, handlers=[self._on_change])
 
     def stop(self):
