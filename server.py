@@ -69,6 +69,8 @@ def create_task():
     )
 
     task_type = data.get("type", "normal")
+    if task_type not in ("normal", "script"):
+        return jsonify({"error": "Invalid task type"}), 400
     now = _now()
     task = Task(
         id=task_id,
@@ -98,7 +100,7 @@ def update_task(task_id):
 
     for field in ("name", "description", "deadline", "priority",
                   "created_at", "started_at", "updated_at", "completed_at",
-                  "type", "shell_command", "shell_result"):
+                  "shell_command", "shell_result"):
         if field in data:
             val = data[field]
             if field in ("deadline", "started_at", "updated_at", "completed_at"):
