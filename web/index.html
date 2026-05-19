@@ -9,57 +9,58 @@
 <body>
     <div class="app-container">
         <header>
-            <h1>Task Manager</h1>
+            <h1>Tasks</h1>
             <div class="filter-controls">
-                <label>
-                    From:
-                    <input type="date" id="filter-start">
-                </label>
-                <label>
-                    To:
-                    <input type="date" id="filter-end">
-                </label>
-                <button id="clear-filter" class="btn-secondary">Clear</button>
+                <button id="fullscreen-btn" class="btn-icon" title="View all descriptions">&#9776;</button>
             </div>
         </header>
 
-        <main class="kanban-board">
-            <section class="column" data-status="pending">
-                <h2>Pending</h2>
-                <div class="tasks-container" data-status="pending"></div>
-            </section>
-            <section class="column" data-status="processing">
-                <h2>Processing</h2>
-                <div class="tasks-container" data-status="processing"></div>
-            </section>
-            <section class="column" data-status="done">
-                <h2>Done</h2>
-                <div class="tasks-container" data-status="done"></div>
-            </section>
-        </main>
+        <div id="peers-bar" class="peers-bar">
+            <span id="peers-self"></span>
+            <span id="peers-list"></span>
+            <span class="peers-none" id="peers-none">No one else online</span>
+        </div>
 
-        <button id="add-task-btn" class="btn-primary">+ Add Task</button>
+        <div class="timeline-slider">
+            <div class="slider-track" id="slider-track">
+                <div class="slider-range" id="slider-range"></div>
+                <div class="slider-handle" id="handle-start"><span class="handle-label" id="label-start"></span></div>
+                <div class="slider-handle" id="handle-end"><span class="handle-label" id="label-end"></span></div>
+            </div>
+        </div>
+
+        <div class="grid-scroll">
+            <table class="task-grid">
+                <thead>
+                    <tr>
+                        <th class="date-col">Date</th>
+                        <th class="status-col pending-col">Pending</th>
+                        <th class="status-col processing-col">Processing</th>
+                        <th class="status-col done-col">Done</th>
+                    </tr>
+                </thead>
+                <tbody id="grid-body"></tbody>
+            </table>
+        </div>
+
+        <button id="add-task-btn">+</button>
     </div>
 
     <!-- Add Task Modal -->
     <div id="add-task-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>Add New Task</h2>
+            <h2>New Task</h2>
             <form id="add-task-form">
                 <div class="form-group">
-                    <label for="task-name">Task Name</label>
-                    <input type="text" id="task-name" required>
+                    <input type="text" id="task-name" placeholder="Task name" required>
                 </div>
                 <div class="form-group">
-                    <label for="task-description">Description</label>
-                    <textarea id="task-description" rows="3"></textarea>
+                    <textarea id="task-description" rows="3" placeholder="Description (optional)"></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="task-deadline">Deadline</label>
                     <input type="date" id="task-deadline">
                 </div>
                 <div class="form-group">
-                    <label for="task-priority">Priority</label>
                     <select id="task-priority">
                         <option value="low">Low</option>
                         <option value="medium" selected>Medium</option>
@@ -67,8 +68,8 @@
                     </select>
                 </div>
                 <div class="form-actions">
-                    <button type="button" id="cancel-add" class="btn-secondary">Cancel</button>
-                    <button type="submit" class="btn-primary">Add Task</button>
+                    <button type="button" id="cancel-add">Cancel</button>
+                    <button type="submit">Add</button>
                 </div>
             </form>
         </div>
@@ -77,12 +78,18 @@
     <!-- Task Detail Modal -->
     <div id="task-detail-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>Task Details</h2>
+            <h2 id="detail-title"></h2>
             <div id="task-detail-content"></div>
+            <div id="assign-section" class="assign-section hidden">
+                <select id="assign-target" class="assign-select">
+                    <option value="">Assign to...</option>
+                </select>
+                <button id="assign-confirm-btn">Assign</button>
+            </div>
             <div class="form-actions">
-                <button id="edit-task-btn" class="btn-primary">Edit</button>
+                <button id="edit-task-btn">Edit</button>
                 <button id="delete-task-btn" class="btn-danger">Delete</button>
-                <button id="close-detail" class="btn-secondary">Close</button>
+                <button id="close-detail">Close</button>
             </div>
         </div>
     </div>
@@ -93,19 +100,15 @@
             <h2>Edit Task</h2>
             <form id="edit-task-form">
                 <div class="form-group">
-                    <label for="edit-task-name">Task Name</label>
-                    <input type="text" id="edit-task-name" required>
+                    <input type="text" id="edit-task-name" placeholder="Task name" required>
                 </div>
                 <div class="form-group">
-                    <label for="edit-task-description">Description</label>
-                    <textarea id="edit-task-description" rows="3"></textarea>
+                    <textarea id="edit-task-description" rows="3" placeholder="Description"></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="edit-task-deadline">Deadline</label>
                     <input type="date" id="edit-task-deadline">
                 </div>
                 <div class="form-group">
-                    <label for="edit-task-priority">Priority</label>
                     <select id="edit-task-priority">
                         <option value="low">Low</option>
                         <option value="medium">Medium</option>
@@ -113,21 +116,20 @@
                     </select>
                 </div>
                 <div class="form-actions">
-                    <button type="button" id="cancel-edit" class="btn-secondary">Cancel</button>
-                    <button type="submit" class="btn-primary">Save</button>
+                    <button type="button" id="cancel-edit">Cancel</button>
+                    <button type="submit">Save</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- No Tasks Message -->
-    <div id="no-tasks-message" class="hidden">
-        <p>No tasks in selected date range</p>
-    </div>
-
-    <!-- Warning Banner -->
-    <div id="warning-banner" class="hidden">
-        <p>Warning: localStorage is not available. Your tasks will not be saved.</p>
+    <!-- Fullscreen Descriptions Overlay -->
+    <div id="fullscreen-overlay" class="fullscreen hidden">
+        <div class="fullscreen-header">
+            <h2>All Descriptions</h2>
+            <button id="close-fullscreen">&times;</button>
+        </div>
+        <div id="fullscreen-content"></div>
     </div>
 
     <script src="app.js"></script>
