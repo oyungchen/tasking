@@ -145,8 +145,8 @@ def move_task(task_id):
                 new_status,
                 get_or_create_identity()["instance_id"],
             )
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Status update failed for task {task.id}: {e}")
     storage.save_task(task)
     return jsonify(task.to_dict())
 
@@ -233,10 +233,14 @@ def peer_assign():
         return jsonify({"error": "Task data required"}), 400
 
     task_data = data["task"]
+    sender_host = (
+        (task_data.get("assigned_by") or {}).get("host")
+        or request.remote_addr
+    )
     task_data["assigned_by"] = {
         "instance_id": data.get("from_instance", ""),
         "display_name": data.get("from_display", "Unknown"),
-        "host": request.remote_addr,
+        "host": sender_host,
         "port": data.get("from_port", 8080),
     }
     task_data["assigned_to"] = None
