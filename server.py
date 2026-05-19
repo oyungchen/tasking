@@ -68,13 +68,16 @@ def create_task():
         random.choices(string.ascii_lowercase + string.digits, k=6)
     )
 
+    task_type = data.get("type", "normal")
     now = _now()
     task = Task(
         id=task_id,
         name=data["name"].strip(),
-        description=data.get("description", "").strip(),
-        deadline=data.get("deadline") or None,
-        priority=data.get("priority", "medium"),
+        description=data.get("description", "").strip() if task_type == "normal" else "",
+        deadline=data.get("deadline") or None if task_type == "normal" else None,
+        priority=data.get("priority", "medium") if task_type == "normal" else "medium",
+        type=task_type,
+        shell_command=data.get("shell_command", "").strip() if task_type == "script" else None,
         status="pending",
         created_at=now,
         updated_at=now,
@@ -94,18 +97,21 @@ def update_task(task_id):
         return jsonify({"error": "No data provided"}), 400
 
     for field in ("name", "description", "deadline", "priority",
-                  "created_at", "started_at", "updated_at", "completed_at"):
+                  "created_at", "started_at", "updated_at", "completed_at",
+                  "type", "shell_command", "shell_result"):
         if field in data:
             val = data[field]
             if field in ("deadline", "started_at", "updated_at", "completed_at"):
                 val = val or None
-            elif field == "description":
+            elif field in ("description", "shell_command"):
                 val = (val or "").strip()
             elif field == "name":
                 val = val.strip()
+            elif field == "shell_result":
+                val = val or None
             setattr(task, field, val)
 
-    if "priority" in data:
+    if "priority" in data and task.type == "normal":
         task.color = PRIORITY_COLORS.get(Priority(task.priority), "#888888")
 
     if "updated_at" not in data:
