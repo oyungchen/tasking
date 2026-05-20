@@ -43,6 +43,9 @@
         addTaskModal: $('add-task-modal'), addTaskForm: $('add-task-form'),
         taskName: $('task-name'), taskDesc: $('task-description'),
         taskDeadline: $('task-deadline'), taskPriority: $('task-priority'),
+        taskType: $('task-type'), taskCommand: $('task-command'),
+        tabNormal: $('tab-normal'), tabScript: $('tab-script'),
+        taskAssign: $('task-assign'), taskAssignTrigger: $('task-assign-trigger'), taskAssignDrop: $('task-assign-drop'),
         cancelAdd: $('cancel-add'),
         detailModal: $('task-detail-modal'), detailTitle: $('detail-title'),
         detailContent: $('task-detail-content'),
@@ -57,6 +60,7 @@
         peersBar: $('peers-bar'), peersSelf: $('peers-self'),
         peersList: $('peers-list'), peersNone: $('peers-none'),
         assignSection: $('assign-section'), assignTarget: $('assign-target'),
+        assignTrigger: $('assign-trigger'), assignDrop: $('assign-drop'),
         assignConfirmBtn: $('assign-confirm-btn'),
     };
 
@@ -145,8 +149,32 @@
             return;
         }
         els.assignSection.classList.remove('hidden');
-        els.assignTarget.innerHTML = '<option value="">Assign to...</option>'
-            + peers.peers.map(p => '<option value="' + p.instance_id + '">' + esc(p.display_name) + '</option>').join('');
+        buildMultiSelect(els.assignTrigger, els.assignDrop, peers.peers);
+    }
+
+    function buildMultiSelect(trigger, drop, peerList) {
+        if (!peerList.length) {
+            trigger.textContent = 'No peers online';
+            drop.innerHTML = '';
+            return;
+        }
+        trigger.textContent = 'Assign to...';
+        drop.innerHTML = peerList.map(p =>
+            '<label><input type="checkbox" value="' + p.instance_id + '"> ' + esc(p.display_name) + '</label>'
+        ).join('');
+    }
+
+    function getCheckedPeers(drop) {
+        return Array.from(drop.querySelectorAll('input:checked')).map(cb => cb.value);
+    }
+
+    function switchType(type) {
+        els.taskType.value = type;
+        els.tabNormal.classList.toggle('active', type === 'normal');
+        els.tabScript.classList.toggle('active', type === 'script');
+        document.querySelectorAll('.normal-only').forEach(el => el.classList.toggle('hidden', type === 'script'));
+        document.querySelectorAll('.script-only').forEach(el => el.classList.toggle('hidden', type === 'normal'));
+        els.taskName.placeholder = type === 'script' ? 'Label, e.g. deploy staging' : 'Task name';
     }
 
     function fmtDate(d) { return d.toISOString().split('T')[0]; }
@@ -370,6 +398,21 @@
     }
 
     function cardHtml(task) {
+        if (task.type === 'script') {
+            let badge = '';
+            let extraClass = '';
+            if (task.assigned_by) {
+                extraClass = ' assigned-to-me';
+                badge = '<span class="assign-badge from">From ' + esc(task.assigned_by.display_name || '?') + '</span>';
+            } else if (task.assigned_to) {
+                extraClass = ' assigned-out';
+                badge = '<span class="assign-badge to">&rarr; ' + esc(task.assigned_to.display_name || '?') + '</span>';
+            }
+            return '<div class="task-card script-task' + extraClass + '" draggable="true" data-task-id="' + task.id + '">'
+                + '<span class="script-icon">&gt;_</span><span class="task-name">' + esc(task.name) + '</span>'
+                + badge + '</div>';
+        }
+
         const desc = task.description
             ? '<div class="task-meta">' + esc(task.description.substring(0, 35) + (task.description.length > 35 ? '...' : '')) + '</div>'
             : '';
@@ -453,18 +496,51 @@
             }).join('');
         }
 
-        els.detailContent.innerHTML =
-            '<p class="label">Status</p><p>' + t.status.charAt(0).toUpperCase() + t.status.slice(1) + '</p>'
-            + '<p class="label">Priority</p><p>' + t.priority.charAt(0).toUpperCase() + t.priority.slice(1) + '</p>'
-            + (t.description ? '<p class="label">Description</p><div class="desc-block" id="desc-block">' + esc(t.description) + '</div>' : '')
-            + (t.deadline ? '<p class="label">Deadline</p><p>' + t.deadline + '</p>' : '')
-            + '<p class="label" style="margin-top:8px;">Timeline</p>'
-            + '<div class="timeline">' + timelineHtml + '</div>';
+        if (task.type === 'script' && task.shell_command) {
+            let execHtml = '<p class="label">Command</p><div class="code-block">' + esc(task.shell_command) + '</div>';
+            if (task.shell_result) {
+                const r = task.shell_result;
+                const exitLabel = r.exit_code === 0 ? 'Exit 0' : 'Exit ' + r.exit_code;
+                execHtml += '<p class="label" style="margin-top:8px;">Result</p>';
+                execHtml += '<div class="exec-result ' + (r.exit_code === 0 ? 'stdout' : 'stderr') + '">';
+                execHtml += '<div class="result-label">' + exitLabel + ' - ' + (r.executed_at || '') + '</div>';
+                if (r.stdout) execHtml += '<pre>' + esc(r.stdout) + '</pre>';
+                if (r.stderr) execHtml += '<pre style="color:var(--high)">' + esc(r.stderr) + '</pre>';
+                execHtml += '</div>';
+            } else if (task.assigned_by && !task.assigned_to && task.status !== 'done') {
+                execHtml += '<button class="btn-execute" id="execute-btn" style="margin-top:8px;">Execute</button>';
+            }
+            els.detailContent.innerHTML = '<p class="label">Type</p><p>Script</p>'
+                + '<p class="label">Status</p><p>' + task.status.charAt(0).toUpperCase() + task.status.slice(1) + '</p>'
+                + execHtml
+                + '<p class="label" style="margin-top:8px;">Timeline</p>'
+                + '<div class="timeline">' + timelineHtml + '</div>';
 
-        // Click description to fullscreen
-        const descBlock = $('desc-block');
-        if (descBlock) {
-            descBlock.addEventListener('click', () => showDescFullscreen(t));
+            const execBtn = $('execute-btn');
+            if (execBtn) {
+                execBtn.addEventListener('click', async () => {
+                    if (!confirm('Run: ' + task.shell_command + '?')) return;
+                    try {
+                        await apiPost('/api/tasks/' + task.id + '/execute');
+                        await loadAllTasks(); await loadTasks();
+                        const updated = tasks.find(x => x.id === task.id);
+                        if (updated) showDetail(updated.id);
+                    } catch (err) { alert('Execute failed: ' + err.message); }
+                });
+            }
+        } else {
+            els.detailContent.innerHTML =
+                '<p class="label">Status</p><p>' + task.status.charAt(0).toUpperCase() + task.status.slice(1) + '</p>'
+                + '<p class="label">Priority</p><p>' + task.priority.charAt(0).toUpperCase() + task.priority.slice(1) + '</p>'
+                + (task.description ? '<p class="label">Description</p><div class="desc-block" id="desc-block">' + esc(task.description) + '</div>' : '')
+                + (task.deadline ? '<p class="label">Deadline</p><p>' + task.deadline + '</p>' : '')
+                + '<p class="label" style="margin-top:8px;">Timeline</p>'
+                + '<div class="timeline">' + timelineHtml + '</div>';
+
+            const descBlock = $('desc-block');
+            if (descBlock) {
+                descBlock.addEventListener('click', () => showDescFullscreen(task));
+            }
         }
 
         els.detailModal.classList.remove('hidden');
@@ -504,6 +580,9 @@
     function showAdd() {
         els.taskName.value = ''; els.taskDesc.value = '';
         els.taskDeadline.value = ''; els.taskPriority.value = 'medium';
+        els.taskCommand.value = '';
+        switchType('normal');
+        buildMultiSelect(els.taskAssignTrigger, els.taskAssignDrop, peers.peers);
         els.addTaskModal.classList.remove('hidden'); els.taskName.focus();
     }
     function hideAdd() { els.addTaskModal.classList.add('hidden'); }
@@ -529,11 +608,21 @@
             e.preventDefault();
             const name = els.taskName.value.trim();
             if (!name) return;
-            await apiPost('/api/tasks', {
-                name, description: els.taskDesc.value.trim(),
-                deadline: els.taskDeadline.value || null,
-                priority: els.taskPriority.value
-            });
+            const taskType = els.taskType.value;
+            const payload = { name, type: taskType };
+            if (taskType === 'script') {
+                payload.shell_command = els.taskCommand.value.trim();
+            } else {
+                payload.description = els.taskDesc.value.trim();
+                payload.deadline = els.taskDeadline.value || null;
+                payload.priority = els.taskPriority.value;
+            }
+            const task = await apiPost('/api/tasks', payload);
+            const targets = getCheckedPeers(els.taskAssignDrop);
+            for (const toInstance of targets) {
+                try { await apiPost('/api/tasks/' + task.id + '/assign', { to_instance: toInstance }); }
+                catch (err) { /* assign failed for one peer, continue */ }
+            }
             hideAdd();
             await loadAllTasks(); initSlider(); await loadTasks();
         });
@@ -566,10 +655,12 @@
         });
 
         els.assignConfirmBtn.addEventListener('click', async () => {
-            const toInstance = els.assignTarget.value;
-            if (!toInstance || !selectedTaskId) return;
+            const targets = getCheckedPeers(els.assignDrop);
+            if (!targets.length || !selectedTaskId) return;
             try {
-                await apiPost('/api/tasks/' + selectedTaskId + '/assign', { to_instance: toInstance });
+                for (const toInstance of targets) {
+                    await apiPost('/api/tasks/' + selectedTaskId + '/assign', { to_instance: toInstance });
+                }
                 els.detailModal.classList.add('hidden');
                 selectedPeerId = null;
                 await loadAllTasks(); initSlider(); await loadTasks();
@@ -579,6 +670,26 @@
 
         els.fullscreenBtn.addEventListener('click', showAllFullscreen);
         els.closeFullscreen.addEventListener('click', () => els.fullscreen.classList.add('hidden'));
+
+        // Type switcher tabs
+        els.tabNormal.addEventListener('click', () => switchType('normal'));
+        els.tabScript.addEventListener('click', () => switchType('script'));
+
+        // Multi-select dropdown toggles
+        function toggleDrop(trigger, drop) {
+            const open = drop.classList.contains('open');
+            document.querySelectorAll('.multi-select-drop.open').forEach(d => d.classList.remove('open'));
+            document.querySelectorAll('.multi-select-trigger.open').forEach(t => t.classList.remove('open'));
+            if (!open) { drop.classList.add('open'); trigger.classList.add('open'); }
+        }
+        els.taskAssignTrigger.addEventListener('click', () => toggleDrop(els.taskAssignTrigger, els.taskAssignDrop));
+        els.assignTrigger.addEventListener('click', () => toggleDrop(els.assignTrigger, els.assignDrop));
+        document.addEventListener('click', e => {
+            if (!e.target.closest('.multi-select')) {
+                document.querySelectorAll('.multi-select-drop.open').forEach(d => d.classList.remove('open'));
+                document.querySelectorAll('.multi-select-trigger.open').forEach(t => t.classList.remove('open'));
+            }
+        });
 
         [els.addTaskModal, els.detailModal, els.editModal].forEach(m => {
             m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); });

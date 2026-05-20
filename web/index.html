@@ -50,22 +50,36 @@
     <div id="add-task-modal" class="modal hidden">
         <div class="modal-content">
             <h2>New Task</h2>
+            <div class="type-tabs">
+                <button type="button" class="type-tab active" data-type="normal" id="tab-normal">Task</button>
+                <button type="button" class="type-tab" data-type="script" id="tab-script">Script</button>
+            </div>
             <form id="add-task-form">
+                <input type="hidden" id="task-type" value="normal">
                 <div class="form-group">
                     <input type="text" id="task-name" placeholder="Task name" required>
                 </div>
-                <div class="form-group">
+                <div class="form-group normal-only">
                     <textarea id="task-description" rows="3" placeholder="Description (optional)"></textarea>
                 </div>
-                <div class="form-group">
+                <div class="form-group script-only hidden">
+                    <input type="text" id="task-command" placeholder="Shell command, e.g. bash deploy.sh">
+                </div>
+                <div class="form-group normal-only">
                     <input type="date" id="task-deadline">
                 </div>
-                <div class="form-group">
+                <div class="form-group normal-only">
                     <select id="task-priority">
                         <option value="low">Low</option>
                         <option value="medium" selected>Medium</option>
                         <option value="high">High</option>
                     </select>
+                </div>
+                <div class="form-group" id="add-assign-group">
+                    <div class="multi-select" id="task-assign">
+                        <div class="multi-select-trigger" id="task-assign-trigger">Assign to...</div>
+                        <div class="multi-select-drop" id="task-assign-drop"></div>
+                    </div>
                 </div>
                 <div class="form-actions">
                     <button type="button" id="cancel-add">Cancel</button>
@@ -81,9 +95,10 @@
             <h2 id="detail-title"></h2>
             <div id="task-detail-content"></div>
             <div id="assign-section" class="assign-section hidden">
-                <select id="assign-target" class="assign-select">
-                    <option value="">Assign to...</option>
-                </select>
+                <div class="multi-select" id="assign-target">
+                    <div class="multi-select-trigger" id="assign-trigger">Assign to...</div>
+                    <div class="multi-select-drop" id="assign-drop"></div>
+                </div>
                 <button id="assign-confirm-btn">Assign</button>
             </div>
             <div class="form-actions">
