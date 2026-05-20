@@ -1,82 +1,101 @@
 # Task Manager
 
-A desktop task management application with a Kanban-style board interface.
+A collaborative task management tool with a date×status grid view and LAN peer-to-peer task sharing.
 
 ## Features
 
-- **Kanban Board**: Three columns (Pending, Processing, Done) for task organization
-- **Drag & Drop**: Move tasks between columns by clicking to change status
-- **Date Filtering**: View tasks by date range (defaults to current week)
-- **Priority Levels**: High (red), Medium (orange), Low (green) with color coding
-- **Persistent Storage**: Tasks saved locally in JSON files
-
-## Screenshots
-
-*To be added*
+- **Date×Status Grid** — Tasks organized by date (rows) and status columns (Pending, Processing, Done)
+- **Drag & Drop** — Horizontal drag changes status; vertical drag changes the effective date
+- **Date Range Slider** — Filter tasks by date range with an interactive slider
+- **Two Task Types**:
+  - **Normal** — Description, deadline, priority (High/Medium/Low) with color coding
+  - **Script** — Shell command tasks that can be executed and show exit code/output
+- **LAN Peer Discovery** — Auto-discovers other instances on the local network via mDNS (Zeroconf)
+- **Peer-to-Peer Assignment** — Assign tasks to other instances; receives status updates back
+- **Instance Identity** — Each instance gets a unique ID and customizable display name
+- **Persistent Storage** — Tasks saved in a single JSON file
 
 ## Installation
 
 ### Requirements
-- Python 3.x with tkinter support
-
-### Quick Start
+- Python 3.x
+- Flask >= 3.0
+- zeroconf >= 0.130
 
 ```bash
-# Clone or download the repository
-git clone <repository-url>
-cd task-manager
-
-# Run the application
-python main.py
-
-# Or use the launcher script (macOS/Linux)
-./run.sh
+python -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
-### Installing tkinter
+## Running
 
-**macOS:**
 ```bash
-brew install python-tk
+# Start
+./scripts/control.sh start
+
+# Or manually
+.venv/bin/python server.py
 ```
 
-**Ubuntu/Debian:**
+Open http://localhost:8080 in your browser.
+
 ```bash
-sudo apt-get install python3-tk
+# Stop / Restart / Status
+./scripts/control.sh stop
+./scripts/control.sh restart
+./scripts/control.sh status
 ```
 
-**Fedora:**
+Set a custom port:
+
 ```bash
-sudo dnf install python3-tkinter
+PORT=9090 .venv/bin/python server.py
 ```
 
 ## Usage
 
-1. **Adding Tasks**: Click the "+ New Task" button or use File → New Task (Ctrl+N)
-2. **Moving Tasks**: Click on a task to open details, then use the "Move to..." buttons
-3. **Editing/Deleting**: Open task details to delete a task
-4. **Date Navigation**: Use the date controls to view tasks from different weeks
+1. **Add Task** — Click "+" button, choose Task or Script tab, fill in details
+2. **Move Task** — Drag & drop horizontally to change status, vertically to change date
+3. **Execute Script** — Open an assigned script task and click Execute
+4. **Assign to Peer** — Open a task detail and assign to a discovered LAN peer
+5. **Edit Name** — Click the pencil icon next to your name in the header
+6. **View Descriptions** — Click the hamburger menu to view all task descriptions fullscreen
 
 ## File Structure
 
 ```
-task-manager/
-├── main.py          # Application entry point
-├── app.py           # Main application window
-├── gui.py           # GUI components (Kanban columns, cards)
-├── models.py        # Data models (Task, enums)
-├── storage.py       # File-based storage
-├── tasks/           # Task data directory
-│   ├── pending.json
-│   ├── processing.json
-│   └── done.json
-└── run.sh           # Launcher script
+tasking/
+├── server.py          # Flask API server
+├── models.py          # Task dataclass, enums
+├── storage.py         # JSON file persistence
+├── identity.py        # Instance identity management
+├── peer.py            # LAN peer discovery (mDNS)
+├── web/
+│   ├── index.html     # Frontend HTML
+│   ├── app.js         # Frontend logic
+│   └── styles.css     # Styles
+├── scripts/
+│   └── control.sh     # Start/stop/restart/status launcher
+├── tasks/             # Task data directory (gitignored)
+└── requirements.txt
 ```
+
+## API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/tasks` | List tasks (`?start=&end=` date filters) |
+| POST | `/api/tasks` | Create task |
+| GET | `/api/tasks/<id>` | Get task |
+| PUT | `/api/tasks/<id>` | Update task |
+| DELETE | `/api/tasks/<id>` | Delete task |
+| PATCH | `/api/tasks/<id>/move` | Move task to new status |
+| POST | `/api/tasks/<id>/execute` | Execute script task |
+| POST | `/api/tasks/<id>/assign` | Assign task to LAN peer |
+| GET | `/api/identity` | Get instance identity |
+| POST | `/api/identity/name` | Set display name |
+| GET | `/api/peers` | List discovered LAN peers |
 
 ## License
 
-MIT License - see LICENSE file for details.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+MIT
