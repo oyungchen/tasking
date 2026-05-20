@@ -294,7 +294,10 @@ def peer_assign():
         "host": sender_host,
         "port": data.get("from_port", 8080),
     }
-    task_data["assigned_to"] = None
+    task_data["assigned_to"] = {
+        "instance_id": identity["instance_id"],
+        "display_name": identity["display_name"],
+    }
 
     existing = storage.get_task(task_data["id"])
     if existing:

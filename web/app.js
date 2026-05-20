@@ -496,10 +496,10 @@
             }).join('');
         }
 
-        if (task.type === 'script' && task.shell_command) {
-            let execHtml = '<p class="label">Command</p><div class="code-block">' + esc(task.shell_command) + '</div>';
-            if (task.shell_result) {
-                const r = task.shell_result;
+        if (t.type === 'script' && t.shell_command) {
+            let execHtml = '<p class="label">Command</p><div class="code-block">' + esc(t.shell_command) + '</div>';
+            if (t.shell_result) {
+                const r = t.shell_result;
                 const exitLabel = r.exit_code === 0 ? 'Exit 0' : 'Exit ' + r.exit_code;
                 execHtml += '<p class="label" style="margin-top:8px;">Result</p>';
                 execHtml += '<div class="exec-result ' + (r.exit_code === 0 ? 'stdout' : 'stderr') + '">';
@@ -507,11 +507,11 @@
                 if (r.stdout) execHtml += '<pre>' + esc(r.stdout) + '</pre>';
                 if (r.stderr) execHtml += '<pre style="color:var(--high)">' + esc(r.stderr) + '</pre>';
                 execHtml += '</div>';
-            } else if (task.assigned_by && !task.assigned_to && task.status !== 'done') {
+            } else if (t.assigned_to && peers.self && t.assigned_to.instance_id === peers.self.instance_id && t.status !== 'done') {
                 execHtml += '<button class="btn-execute" id="execute-btn" style="margin-top:8px;">Execute</button>';
             }
             els.detailContent.innerHTML = '<p class="label">Type</p><p>Script</p>'
-                + '<p class="label">Status</p><p>' + task.status.charAt(0).toUpperCase() + task.status.slice(1) + '</p>'
+                + '<p class="label">Status</p><p>' + t.status.charAt(0).toUpperCase() + t.status.slice(1) + '</p>'
                 + execHtml
                 + '<p class="label" style="margin-top:8px;">Timeline</p>'
                 + '<div class="timeline">' + timelineHtml + '</div>';
@@ -519,27 +519,27 @@
             const execBtn = $('execute-btn');
             if (execBtn) {
                 execBtn.addEventListener('click', async () => {
-                    if (!confirm('Run: ' + task.shell_command + '?')) return;
+                    if (!confirm('Run: ' + t.shell_command + '?')) return;
                     try {
-                        await apiPost('/api/tasks/' + task.id + '/execute');
+                        await apiPost('/api/tasks/' + t.id + '/execute');
                         await loadAllTasks(); await loadTasks();
-                        const updated = tasks.find(x => x.id === task.id);
+                        const updated = tasks.find(x => x.id === t.id);
                         if (updated) showDetail(updated.id);
                     } catch (err) { alert('Execute failed: ' + err.message); }
                 });
             }
         } else {
             els.detailContent.innerHTML =
-                '<p class="label">Status</p><p>' + task.status.charAt(0).toUpperCase() + task.status.slice(1) + '</p>'
-                + '<p class="label">Priority</p><p>' + task.priority.charAt(0).toUpperCase() + task.priority.slice(1) + '</p>'
-                + (task.description ? '<p class="label">Description</p><div class="desc-block" id="desc-block">' + esc(task.description) + '</div>' : '')
-                + (task.deadline ? '<p class="label">Deadline</p><p>' + task.deadline + '</p>' : '')
+                '<p class="label">Status</p><p>' + t.status.charAt(0).toUpperCase() + t.status.slice(1) + '</p>'
+                + '<p class="label">Priority</p><p>' + t.priority.charAt(0).toUpperCase() + t.priority.slice(1) + '</p>'
+                + (t.description ? '<p class="label">Description</p><div class="desc-block" id="desc-block">' + esc(t.description) + '</div>' : '')
+                + (t.deadline ? '<p class="label">Deadline</p><p>' + t.deadline + '</p>' : '')
                 + '<p class="label" style="margin-top:8px;">Timeline</p>'
                 + '<div class="timeline">' + timelineHtml + '</div>';
 
             const descBlock = $('desc-block');
             if (descBlock) {
-                descBlock.addEventListener('click', () => showDescFullscreen(task));
+                descBlock.addEventListener('click', () => showDescFullscreen(t));
             }
         }
 
