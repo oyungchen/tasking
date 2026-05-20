@@ -2,7 +2,7 @@
 import json
 import socket
 import threading
-from urllib.request import Request, urlopen
+from urllib.request import ProxyHandler, build_opener, install_opener, urlopen
 
 from zeroconf import ServiceBrowser, ServiceInfo, Zeroconf, NonUniqueNameException
 
@@ -10,6 +10,10 @@ from identity import get_or_create_identity
 
 SERVICE_TYPE = "_taskdone._http._tcp.local."
 PEER_API_VERSION = 1
+
+# Ensure peer-to-peer requests bypass the system proxy
+_no_proxy_opener = build_opener(ProxyHandler({}))
+install_opener(_no_proxy_opener)
 
 
 def local_ip():
